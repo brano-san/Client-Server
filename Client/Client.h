@@ -3,23 +3,30 @@
 #include <string>
 #include <WinSock2.h>
 
-class Client final
+namespace my_chat
 {
-public:
-	Client(std::string ip, unsigned short port);
-	~Client();
+	class Client final
+	{
+	public:
+		Client();
+		Client(std::string ip, unsigned short port);
 
-public:
-	void connectToServer();
+		~Client();
 
-private:
-	WSADATA _wsaData;
-	SOCKET _socket;
-	sockaddr_in _serverInfo;
+	public:
+		void openConnection();
 
-	std::string _serverIp;
-	unsigned short _serverPort;
+		std::string receiveFromServer();
+		void sendToServer(const std::string& message);
 
-private:
-	void winSockInit();
-};
+		void setIpAndPort(const std::string& ip, unsigned short port);
+
+	private:
+		WSADATA _wsaData;
+		SOCKET _serverSocket;
+		sockaddr_in _serverInfo;
+
+		std::string _serverIp;
+		unsigned short _serverPort;
+	};
+}

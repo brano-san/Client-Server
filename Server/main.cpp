@@ -5,12 +5,17 @@
 
 int main()
 {
+	std::cout << "Server side" << '\n' << '\n';
 	try
 	{
 		std::string ip("127.0.0.1");
 		const unsigned int port = 3500;
-		auto client = Server(std::move(ip), port);
-		client.listenToClient();
+		auto server = my_chat::Server(std::move(ip), port);
+		server.openConnection();
+
+		server.sendToClient("Hello, Client!!!");
+
+		std::cout << server.receiveFromClient() << '\n';
 	}
 	catch (std::runtime_error& e)
 	{

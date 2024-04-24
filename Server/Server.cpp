@@ -1,37 +1,43 @@
 #include "Server.h"
 
+#include <vector>
 #include <iostream>
 #include <stdexcept>
-#include <vector>
 #include <WS2tcpip.h>
 
-Server::Server(std::string ip, unsigned short port)
+my_chat::Server::Server()
+	: Server(std::string(), 0)
+{
+
+}
+
+my_chat::Server::Server(std::string ip, const unsigned short port)
 	: _serverIp(std::move(ip)), _serverPort(port)
 {
 	ZeroMemory(&(this->_wsaData),      sizeof(WSADATA));
-	ZeroMemory(&(this->_serverSocket),       sizeof(SOCKET));
+
+	ZeroMemory(&(this->_serverSocket), sizeof(SOCKET));
 	ZeroMemory(&(this->_serverInfo),   sizeof(sockaddr_in));
 
 	ZeroMemory(&(this->_clientSocket), sizeof(SOCKET));
+	ZeroMemory(&(this->_clientInfo),   sizeof(sockaddr_in));
 
-	this->winSockInit();
+	if (WSAStartup(MAKEWORD(2, 2), &this->_wsaData) != 0)
+	{
+		throw std::runtime_error("Cannot initialize WinSock: " +
+			std::to_string(WSAGetLastError()));
+	}
 }
 
-Server::~Server()
+my_chat::Server::~Server()
 {
 	closesocket(this->_clientSocket);
 	closesocket(this->_serverSocket);
 	WSACleanup();
 }
 
-void Server::listenToClient()
+void my_chat::Server::initClient()
 {
-	if (listen(this->_serverSocket, SOMAXCONN) != 0)
-	{
-		throw std::runtime_error("Cannot listen to client: " +
-			std::to_string(WSAGetLastError()));
-	}
-
 	const auto clientInfo = reinterpret_cast<sockaddr*>(&this->_clientInfo);
 	int clientSize = sizeof(sockaddr_in);
 	this->_clientSocket = accept(this->_serverSocket, clientInfo, &clientSize);
@@ -40,25 +46,10 @@ void Server::listenToClient()
 		throw std::runtime_error("Cannot initialize Client Socket: " +
 			std::to_string(WSAGetLastError()));
 	}
-
-
-	std::vector<char> message(50);
-
-	recv(this->_clientSocket, message.data(), message.size(), 0);
-
-	for (auto i : message)
-		std::cout << i;
-	std::cout << '\n';
 }
 
-void Server::winSockInit()
+void my_chat::Server::openConnection()
 {
-	if (WSAStartup(MAKEWORD(2, 2), &this->_wsaData) != 0)
-	{
-		throw std::runtime_error("Cannot initialize WinSock: " +
-			std::to_string(WSAGetLastError()));
-	}
-
 	this->_serverSocket = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 	if (this->_serverSocket == INVALID_SOCKET)
 	{
@@ -83,4 +74,32 @@ void Server::winSockInit()
 		throw std::runtime_error("Cannot bind socket to server: " +
 			std::to_string(WSAGetLastError()));
 	}
+
+	if (listen(this->_serverSocket, SOMAXCONN) != 0)
+	{
+		throw std::runtime_error("Cannot listen to client: " +
+			std::to_string(WSAGetLastError()));
+	}
+
+	this->initClient();
+}
+
+std::string my_chat::Server::receiveFromClient()
+{
+	std::vector<char> message(50);
+
+	recv(this->_clientSocket, message.data(), message.size(), 0);
+
+	return std::string{ message.begin(), message.end() };
+}
+
+void my_chat::Server::sendToClient(const std::string& message)
+{
+	send(this->_clientSocket, message.data(), message.size(), 0);
+}
+
+void my_chat::Server::setIpAndPort(const std::string& ip, const unsigned short port)
+{
+	this->_serverIp = ip;
+	this->_serverPort = port;
 }
