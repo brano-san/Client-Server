@@ -33,6 +33,7 @@ my_chat::Server::~Server()
 {
 	closesocket(this->_clientSocket);
 	closesocket(this->_serverSocket);
+
 	WSACleanup();
 }
 
@@ -88,14 +89,27 @@ std::string my_chat::Server::receiveFromClient()
 {
 	std::vector<char> message(50);
 
-	recv(this->_clientSocket, message.data(), message.size(), 0);
+	const auto err = recv(this->_clientSocket, message.data(), message.size(), 0);
+
+	if (err == SOCKET_ERROR)
+	{
+		if (WSAGetLastError() == 10054)
+		{
+			return std::string{ "" };
+		}
+		throw std::runtime_error("Cannot receive message: " +
+			std::to_string(WSAGetLastError()));
+	}
 
 	return std::string{ message.begin(), message.end() };
 }
 
 void my_chat::Server::sendToClient(const std::string& message)
 {
-	send(this->_clientSocket, message.data(), message.size(), 0);
+	const auto err = send(this->_clientSocket, message.data(), message.size(), 0);
+	if (err == SOCKET_ERROR)
+		throw std::runtime_error("Cannot send message: " +
+			std::to_string(WSAGetLastError()));
 }
 
 void my_chat::Server::setIpAndPort(const std::string& ip, const unsigned short port)

@@ -13,9 +13,12 @@ namespace my_chat
 		~Server();
 
 	public:
+		void initClient();
+
 		void openConnection();
 
 		std::string receiveFromClient();
+
 		void sendToClient(const std::string& message);
 
 		void setIpAndPort(const std::string& ip, unsigned short port);
@@ -30,9 +33,6 @@ namespace my_chat
 
 		SOCKET _clientSocket;
 		sockaddr_in _clientInfo;
-
-	private:
-		void initClient();
 	};
 }
 

@@ -17,6 +17,7 @@ namespace my_chat
 		void openConnection();
 
 		std::string receiveFromServer();
+
 		void sendToServer(const std::string& message);
 
 		void setIpAndPort(const std::string& ip, unsigned short port);

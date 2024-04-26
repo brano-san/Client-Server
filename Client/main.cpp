@@ -9,7 +9,7 @@ int main()
 	try
 	{
 		std::string ip("127.0.0.1");
-		const unsigned int port = 3500;
+		constexpr unsigned int port = 3500;
 
 		auto client = my_chat::Client(std::move(ip), port);
 		client.openConnection();
