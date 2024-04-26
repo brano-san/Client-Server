@@ -8,15 +8,15 @@
 my_chat::Client::Client()
 	: Client(std::string(), 0)
 {
-	
+
 }
 
 my_chat::Client::Client(std::string ip, const unsigned short port)
-	: _serverIp(std::move(ip)) ,_serverPort(port)
+	: _serverIp(std::move(ip)), _serverPort(port)
 {
-	ZeroMemory(&(this->_wsaData),      sizeof(WSADATA));
+	ZeroMemory(&(this->_wsaData), sizeof(WSADATA));
 	ZeroMemory(&(this->_serverSocket), sizeof(SOCKET));
-	ZeroMemory(&(this->_serverInfo),   sizeof(sockaddr_in));
+	ZeroMemory(&(this->_serverInfo), sizeof(sockaddr_in));
 
 	if (WSAStartup(MAKEWORD(2, 2), &this->_wsaData) != 0)
 	{
@@ -27,8 +27,6 @@ my_chat::Client::Client(std::string ip, const unsigned short port)
 
 my_chat::Client::~Client()
 {
-	closesocket(this->_serverSocket);
-
 	WSACleanup();
 }
 
@@ -58,17 +56,35 @@ void my_chat::Client::openConnection()
 		throw std::runtime_error("Cannot connect to server: " +
 			std::to_string(WSAGetLastError()));
 	}
+
+	this->_isConnectionOpen = true;
+}
+
+void my_chat::Client::closeConnection()
+{
+	this->_isConnectionOpen = false;
+
+	closesocket(this->_serverSocket);
 }
 
 std::string my_chat::Client::receiveFromServer()
 {
-	std::vector<char> message(50);
+	std::vector<char> message(512);
 
 	const auto err = recv(this->_serverSocket, message.data(), message.size(), 0);
 
 	if (err == SOCKET_ERROR)
+	{
+		this->_isConnectionOpen = false;
+
+		if (WSAGetLastError() == 10054)
+		{
+			return std::string{ "" };
+		}
+
 		throw std::runtime_error("Cannot receive message: " +
 			std::to_string(WSAGetLastError()));
+	}
 
 	return std::string{ message.begin(), message.end() };
 }
@@ -77,12 +93,20 @@ void my_chat::Client::sendToServer(const std::string& message)
 {
 	const auto err = send(this->_serverSocket, message.data(), message.size(), 0);
 	if (err == SOCKET_ERROR)
+	{
+		this->_isConnectionOpen = false;
 		throw std::runtime_error("Cannot send message: " +
 			std::to_string(WSAGetLastError()));
+	}
 }
 
 void my_chat::Client::setIpAndPort(const std::string& ip, const unsigned short port)
 {
 	this->_serverIp = ip;
 	this->_serverPort = port;
+}
+
+bool my_chat::Client::isConnectionOpen()
+{
+	return this->_isConnectionOpen;
 }

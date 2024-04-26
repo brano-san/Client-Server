@@ -14,13 +14,13 @@ my_chat::Server::Server()
 my_chat::Server::Server(std::string ip, const unsigned short port)
 	: _serverIp(std::move(ip)), _serverPort(port)
 {
-	ZeroMemory(&(this->_wsaData),      sizeof(WSADATA));
+	ZeroMemory(&(this->_wsaData), sizeof(WSADATA));
 
 	ZeroMemory(&(this->_serverSocket), sizeof(SOCKET));
-	ZeroMemory(&(this->_serverInfo),   sizeof(sockaddr_in));
+	ZeroMemory(&(this->_serverInfo), sizeof(sockaddr_in));
 
 	ZeroMemory(&(this->_clientSocket), sizeof(SOCKET));
-	ZeroMemory(&(this->_clientInfo),   sizeof(sockaddr_in));
+	ZeroMemory(&(this->_clientInfo), sizeof(sockaddr_in));
 
 	if (WSAStartup(MAKEWORD(2, 2), &this->_wsaData) != 0)
 	{
@@ -31,8 +31,7 @@ my_chat::Server::Server(std::string ip, const unsigned short port)
 
 my_chat::Server::~Server()
 {
-	closesocket(this->_clientSocket);
-	closesocket(this->_serverSocket);
+	closeConnection();
 
 	WSACleanup();
 }
@@ -47,6 +46,7 @@ void my_chat::Server::initClient()
 		throw std::runtime_error("Cannot initialize Client Socket: " +
 			std::to_string(WSAGetLastError()));
 	}
+	this->_isConnectionOpen = true;
 }
 
 void my_chat::Server::openConnection()
@@ -82,7 +82,23 @@ void my_chat::Server::openConnection()
 			std::to_string(WSAGetLastError()));
 	}
 
-	this->initClient();
+	this->_isConnectionOpen = true;
+}
+
+void my_chat::Server::closeConnection()
+{
+	this->_isConnectionOpen = false;
+
+	closesocket(this->_clientSocket);
+	closesocket(this->_serverSocket);
+}
+
+void my_chat::Server::clearClientInfo()
+{
+	closesocket(this->_clientSocket);
+
+	ZeroMemory(&(this->_clientSocket), sizeof(SOCKET));
+	ZeroMemory(&(this->_clientInfo), sizeof(sockaddr_in));
 }
 
 std::string my_chat::Server::receiveFromClient()
@@ -93,6 +109,7 @@ std::string my_chat::Server::receiveFromClient()
 
 	if (err == SOCKET_ERROR)
 	{
+		this->_isConnectionOpen = false;
 		if (WSAGetLastError() == 10054)
 		{
 			return std::string{ "" };
@@ -108,12 +125,20 @@ void my_chat::Server::sendToClient(const std::string& message)
 {
 	const auto err = send(this->_clientSocket, message.data(), message.size(), 0);
 	if (err == SOCKET_ERROR)
+	{
+		this->_isConnectionOpen = false;
 		throw std::runtime_error("Cannot send message: " +
 			std::to_string(WSAGetLastError()));
+	}
 }
 
 void my_chat::Server::setIpAndPort(const std::string& ip, const unsigned short port)
 {
 	this->_serverIp = ip;
 	this->_serverPort = port;
+}
+
+bool my_chat::Server::isConnectionOpen()
+{
+	return this->_isConnectionOpen;
 }

@@ -16,6 +16,10 @@ namespace my_chat
 	public:
 		void openConnection();
 
+		void closeConnection();
+
+		bool isConnectionOpen();
+
 		std::string receiveFromServer();
 
 		void sendToServer(const std::string& message);
@@ -29,5 +33,7 @@ namespace my_chat
 
 		std::string _serverIp;
 		unsigned short _serverPort;
+
+		bool _isConnectionOpen = false;
 	};
 }

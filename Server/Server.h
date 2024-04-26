@@ -17,6 +17,12 @@ namespace my_chat
 
 		void openConnection();
 
+		void closeConnection();
+
+		void clearClientInfo();
+
+		bool isConnectionOpen();
+
 		std::string receiveFromClient();
 
 		void sendToClient(const std::string& message);
@@ -33,6 +39,7 @@ namespace my_chat
 
 		SOCKET _clientSocket;
 		sockaddr_in _clientInfo;
+
+		bool _isConnectionOpen = false;
 	};
 }
-
