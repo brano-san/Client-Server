@@ -12,6 +12,7 @@ int main()
 		constexpr unsigned int port = 3500;
 		auto server = my_chat::Server(std::move(ip), port);
 		server.openConnection();
+		server.initClient();
 
 		server.sendToClient("Hello, Client!!!");
 
